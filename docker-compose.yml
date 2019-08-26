@@ -16,7 +16,7 @@ services:
    app:
      build: .
      ports:
-       - "2022:22"       
+       - "8080:80"       
      volumes:
        - app_data:/var/www/html/data/app_data 
      networks:
