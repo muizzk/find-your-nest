@@ -16,22 +16,14 @@ services:
    app:
      build: .
      ports:
-       - "8080:80"
+       - "5000:5000"
      deploy:
-       - replicas: 1       
+       replicas: 1       
      volumes:
        - app_data:/var/www/html/data/app_data 
      networks:
        - reseau_fyn
 
-   proxy:
-     image: nginx
-     volumes:
-       -
-     ports:
-       _ "3000:30"
-     environnement:
-     command: 
 
 networks:
   reseau_fyn:
