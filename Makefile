@@ -1,12 +1,13 @@
 USERNAME:=prajes
-IMAGE:=$(shell basename "$$(pwd)")
-TAG:=$(shell TZ=UTC date+"%Y%m%d")
+IMAGE:=findyournest
+TAG:=$(shell TZ=UTC date +"%Y%m%d")
 
 all:
 	build run
 
 build:
-	docker build -t $(USERNAME)/$(IMAGE):$(TAG)
+	docker build -t $(USERNAME)/$(IMAGE):$(TAG) .
+
 run:
 	docker run -it
 
