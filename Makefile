@@ -1,6 +1,6 @@
 USERNAME:=prajes
 IMAGE:=findyournest
-TAG:=$(shell TZ=UTC date+"%Y%m%d")
+TAG:=$(shell TZ=UTC date +"%Y%m%d")
 
 all:
 	build run
