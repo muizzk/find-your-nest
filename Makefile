@@ -12,7 +12,7 @@ run:
 	docker run -it
 
 test: build
-	docker run $(IMAGE) pipenv run pytest
+	docker run $(USERNAME)/$(IMAGE):$(TAG)  pipenv run pytest
 
 #login: ## Login to docker hub
 #	docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASSWORD
