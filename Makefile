@@ -1,5 +1,5 @@
 USERNAME:=prajes
-IMAGE:=$(shell basename "$$(pwd)")
+IMAGE:=findyournest
 TAG:=$(shell TZ=UTC date+"%Y%m%d")
 
 all:
