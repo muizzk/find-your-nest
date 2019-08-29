@@ -1,12 +1,13 @@
 # vim: set ts=4 sw=4 et:
 from FYN import app, login_manager 
-from flask import request, redirect, render_template, flash, url_for, redirect, flash
+from flask import send_file, request, redirect, render_template, flash, url_for, redirect, flash
 from flask_login import login_required, UserMixin, login_user, current_user, logout_user
 from opencage.geocoder import OpenCageGeocode
 from urllib import parse
 import sqlite3, requests, json
 from pathlib import PurePath  
 from passlib.hash import sha256_crypt
+from werkzeug import secure_filename
  
 #Import Navitia key
 navitia_key = app.config['NAVITIA']
@@ -16,9 +17,12 @@ navitia_url = "http://api.navitia.io/v1/journeys"
 opencagedata_key = "3c853893fc37402eb2ef1473b6629218"
 opencage = OpenCageGeocode(opencagedata_key)
 
-database_file = PurePath('FYN/findyournest.db')
+database_file = PurePath('./FYN/findyournest.db')
 conn = sqlite3.connect(str(database_file), check_same_thread=False)
 c = conn.cursor()
+
+#Chargement images dans le dossier
+upload_pro = PurePath('./FYN/ups/')
 
 #loading the login manager
 @login_manager.user_loader
@@ -217,7 +221,7 @@ def infoscompte():
             else:
                 type_logement = 'Non précisé'
 
-            return render_template("infoscomptepro.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
+            return render_template(_infoscomptepro_up.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
 
         else:
             email = current_user.id
