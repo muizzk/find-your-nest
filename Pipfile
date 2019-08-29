@@ -14,4 +14,3 @@ opencage = "*"
 passlib = "*"
 
 [requires]
-python_version = "3.5"
