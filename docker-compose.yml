@@ -24,7 +24,6 @@ services:
      networks:
        - reseau_fyn
 
-
 networks:
   reseau_fyn:
 
