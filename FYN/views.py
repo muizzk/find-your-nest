@@ -8,6 +8,7 @@ import sqlite3, requests, json
 from pathlib import PurePath  
 from passlib.hash import sha256_crypt
 from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
  
 #Import Navitia key
 navitia_key = app.config['NAVITIA']
@@ -22,7 +23,7 @@ conn = sqlite3.connect(str(database_file), check_same_thread=False)
 c = conn.cursor()
 
 #Chargement images dans le dossier
-upload_pro = PurePath('./FYN/ups/')
+upload_pro = PurePath('./FYN/static/ups/')
 
 #loading the login manager
 @login_manager.user_loader
@@ -221,7 +222,7 @@ def infoscompte():
             else:
                 type_logement = 'Non précisé'
 
-            return render_template(_infoscomptepro_up.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
+            return render_template('_infoscomptepro_up.html', prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
 
         else:
             email = current_user.id
@@ -241,7 +242,7 @@ def infoscompte():
                 else:
                     type_logement = 'Non précisé'
                 
-                return render_template("infoscompte.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
+                return render_template('infoscompte.html', prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
 
             else:
                 if maison == 'on' and appartement != 'on' :
@@ -252,14 +253,16 @@ def infoscompte():
                     type_logement = 'Maison et appartement'
                 else:
                     type_logement = 'Non précisé'
-            return render_template("infoscompte.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3], titre=infos_favoris[0], prix=infos_favoris[1], photo=infos_favoris[2], description=infos_favoris[3])
+            return render_template('infoscompte.html', prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3], titre=infos_favoris[0], prix=infos_favoris[1], photo=infos_favoris[2], description=infos_favoris[3])
 
     else:
         return redirect(url_for('main'))
+
 def checkextension(namefile):
     """ Renvoie True si le fichier possède une extension d'image valide. """
     print(namefile.rsplit('.', 1)[1])
     return '.' in namefile and namefile.rsplit('.', 1)[1] in ('png', 'jpg', 'jpeg')
+    return ''
 
 @app.route('/infoscompte/', methods=['GET','POST'])
 def upload():
@@ -268,23 +271,24 @@ def upload():
             if f: # on vérifie qu'un fichier a bien été envoyé
                 if checkextension(f.filename): # on vérifie que son extension est valide
                     name = secure_filename(f.filename)
-                    f.save(str(upload_pro) + name)
+                    f.save(str(upload_pro) +  name)
                     flash('Image envoyée !', 'success')
                 else:
                     flash('Ce fichier n\'\est pas dans une extension autorisée!', 'error')
+                    return ''
             else:
                 flash('Vous avez oublié de joindre une image !', 'error')
-    else:        
+                return ''
+    else:               
         return render_template('_infoscomptepro_up.html')
 
-
-@app.route('/views/')
+@app.route('/show/')
 def liste_upped():
     images = [img for img in os.listdir(upload_pro) if checkextension(img)] # la liste des images dans le dossier
     return render_template('_infoscomptepro_liste.html', images=images)
+    return ''
 
-
-@app.route('/views/<name>')
+@app.route('/uploads/<name>')
 def upped(name):
     name = secure_filename(name)
     if os.path.isfile(str(upload_pro) + name): # si le fichier existe
@@ -292,4 +296,4 @@ def upped(name):
     else:
         flash('Fichier {name} inexistant.'.format(name=name), 'error')
         return render_template('liste_upped') # sinon on redirige vers la liste des images, avec un message d'erreur
-        
+        return ''
