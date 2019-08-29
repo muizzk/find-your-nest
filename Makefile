@@ -6,7 +6,8 @@ all:
 	build run
 
 build:
-	docker build -t $(USERNAME)/$(IMAGE):$(TAG)
+	docker build -t $(USERNAME)/$(IMAGE):$(TAG) .
+
 run:
 	docker run -it
 
