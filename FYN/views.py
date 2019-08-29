@@ -17,7 +17,7 @@ navitia_url = "http://api.navitia.io/v1/journeys"
 opencagedata_key = "3c853893fc37402eb2ef1473b6629218"
 opencage = OpenCageGeocode(opencagedata_key)
 
-database_file = PurePath('FYN/findyournest.db')
+database_file = PurePath('./FYN/findyournest.db')
 conn = sqlite3.connect(str(database_file), check_same_thread=False)
 c = conn.cursor()
 
@@ -205,44 +205,42 @@ def Fiche(id):
 
 #Partie pro
 
-
 @app.route("/infoscompte/")
 @login_required
 def infoscompte():
     if current_user.is_authenticated:
         print(current_user.pro)
-        if current_user.pro    ==    'on':
-            email    =    current_user.id
-            infos_pro    =    c.execute("select    prenom,    email,    temps,    budget,    maison,    appartement,    id_utilisateur    FROM    utilisateur    where    email=?",    (email,)).fetchone()    
-            maison    =    infos_pro[4]
-            appartement    =    infos_pro[5]
-            infos_adresse    =    c.execute("select    nb,    rue,    ville,    code_postal    from    adresse    inner    join    utilisateur    on    adresse.id_adresse=utilisateur.id_adresse    where    email=?",    (email,)).fetchone()
-            if    maison    ==    'on':
-                type_logement    =    'maison'
-            elif    appartement    ==    'on':
-                type_logement    =    'appartement'
+        if current_user.pro == 'on':
+            email = current_user.id
+            infos_pro = c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=?", (email,)).fetchone()    
+            maison = infos_pro[4]
+            appartement = infos_pro[5]
+            infos_adresse = c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=?", (email,)).fetchone()
+            if maison == 'on':
+                type_logement = 'maison'
+            elif appartement == 'on':
+                type_logement = 'appartement'
             else:
-                type_logement    =    'Non    précisé'
-            return    render_template("infoscomptepro.html",    prenom=infos_pro[0],    email=infos_pro[1],    temps=infos_pro[2],    budget=infos_pro[3],    type_logement=type_logement,    nb=infos_adresse[0],    rue=infos_adresse[1],    ville=infos_adresse[2],    code_postal=infos_adresse[3])
+                type_logement = 'Non précisé'
+            return render_template("infoscomptepro.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
 
         else:
-            email    =    current_user.id
-            infos_pro    =    c.execute("select    prenom,    email,    temps,    budget,    maison,    appartement,    id_utilisateur    FROM    utilisateur    where    email=?",    (email,)).fetchone()    
-            maison    =    infos_pro[4]
-            appartement    =    infos_pro[5]
-            infos_adresse    =    c.execute("select    nb,    rue,    ville,    code_postal    from    adresse    inner    join    utilisateur    on    adresse.id_adresse=utilisateur.id_adresse    where    email=?",    (email,)).fetchone()
+            email =  current_user.id
+            infos_pro = c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM  utilisateur where email=?", (email,)).fetchone()    
+            maison = infos_pro[4]
+            appartement = infos_pro[5]
+            infos_adresse = c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=?", (email,)).fetchone()
             id_user=infos_pro[6]
-            infos_favoris    =    c.execute("SELECT    titre,    prix,    photo,    description    from    logement    inner    join    favoris    on    logement.id_logement=favoris.id_logement    where    favoris.id_utilisateur=?",    (id_user,)).fetchone()
-            if    maison    ==    'on':
-                type_logement    =    'maison'
-            elif    appartement    ==    'on':
-                type_logement    =    'appartement'
+            infos_favoris = c.execute("SELECT titre, prix, photo, description from logement inner join favoris on logement.id_logement=favoris.id_logement where favoris.id_utilisateur=?", (id_user,)).fetchone()
+            if maison == 'on':
+                type_logement = 'maison'
+            elif appartement == 'on':
+                type_logement = 'appartement'
             else:
-                type_logement    =    'Non    précisé'
-            return    render_template("infoscompte.html",    prenom=infos_pro[0],    email=infos_pro[1],    temps=infos_pro[2],    budget=infos_pro[3],    type_logement=type_logement,    nb=infos_adresse[0],    rue=infos_adresse[1],    ville=infos_adresse[2],    code_postal=infos_adresse[3],    titre=infos_favoris[0],    prix=infos_favoris[1],    photo=infos_favoris[2],    description=infos_favoris[3])
-
+                type_logement = 'Non précisé'
+                return render_template("infoscompte.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3], titre=infos_favoris[0], prix=infos_favoris[1], photo=infos_favoris[2], description=infos_favoris[3])
     else:
-        return    redirect(url_for('main'))
+        return redirect(url_for('main'))
 
 def checkextension(namefile):
     """ Renvoie True si le fichier possède une extension d'image valide. """
