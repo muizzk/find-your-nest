@@ -1,5 +1,0 @@
-# Python components
-Flask
-Flask-login
-opencage
-passlib.hash
