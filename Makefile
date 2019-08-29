@@ -1,16 +1,22 @@
-NAME=$(shell basename "$$(pwd)")
+USERNAME:=prajes
+IMAGE:=$(shell basename "$$(pwd)")
+TAG:=$(shell TZ=UTC date+"%Y%m%d")
 
-all:build run
+all:
+	build run
 
 build:
-~   docker build -t $(NAME) . 
-
+	docker build -t $(USERNAME)/$(IMAGE):$(TAG)
 run:
-~   docker run -it
+	docker run -it
 
 test: build
-~   docker run fynbea pipenv run pytest
+	docker run $(IMAGE) pipenv run pytest
+
+#login: ## Login to docker hub
+#	docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASSWORD
 
 deliver:
-~   docker tag $(NAME) $(NAME):20190829
-~   docker push $(NAME)  
+	docker tag $(USERNAME)/$(IMAGE):$(TAG) $(USERNAME)/$(IMAGE):latest
+	docker push $(USERNAME)/$(IMAGE):latest
+
