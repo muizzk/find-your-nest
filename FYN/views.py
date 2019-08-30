@@ -63,11 +63,9 @@ def connexion():
     elif request.method =='POST':
         email = request.form['email']
         password = request.form['password']
-
         c.execute("SELECT prenom, password FROM utilisateur WHERE email=%s", (email,))
         results = c.fetchone()
         
-
         if results :
             passwordEnBase = results[1]
             if sha256_crypt.verify(password, passwordEnBase):
@@ -216,7 +214,7 @@ def Fiche(id):
 def infoscompte():
     if current_user.is_authenticated:
         print(current_user.pro)
-        if current_user.pro == 'on':
+        if current_user.pro == True:
             email = current_user.id
             c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=%s", (email,))
             infos_pro = c.fetchone() 
@@ -224,9 +222,9 @@ def infoscompte():
             appartement = infos_pro[5]
             c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=%s", (email,))
             infos_adresse = c.fetchone()
-            if maison == 'on':
+            if maison == True:
                 type_logement = 'maison'
-            elif appartement == 'on':
+            elif appartement == True:
                 type_logement = 'appartement'
             else:
                 type_logement = 'Non précisé'
@@ -245,11 +243,11 @@ def infoscompte():
             c.execute("SELECT titre, prix, photo, description from logement inner join favoris on logement.id_logement=favoris.id_logement where favoris.id_utilisateur=%s", (id_user,))
             infos_favoris = c.fetchone()
             if infos_favoris is None:
-                if maison == 'on' and appartement !='on':
+                if maison == True and appartement is None:
                     type_logement = 'maison'
-                elif appartement == 'on' and maison != 'on':
+                elif appartement == True  and maison is None:
                     type_logement = 'appartement'
-                elif appartement == 'on' and maison =='on':
+                elif appartement == True and maison == True:
                     type_logement = 'Maison et appartement'
                 else:
                     type_logement = 'Non précisé'
@@ -257,11 +255,11 @@ def infoscompte():
                 return render_template("infoscompte.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3])
 
             else:
-                if maison == 'on' and appartement != 'on' :
+                if maison == True and appartement is None :
                     type_logement = 'maison'
-                elif appartement == 'on' and maison != 'on':
+                elif appartement == True and maison is None :
                     type_logement = 'appartement'
-                elif appartement =='on' and maison =='on':
+                elif appartement == True and maison == True:
                     type_logement = 'Maison et appartement'
                 else:
                     type_logement = 'Non précisé'
@@ -269,6 +267,7 @@ def infoscompte():
 
     else:
         return redirect(url_for('main'))
+
 # def checkextension(namefile):
 #     """ Renvoie True si le fichier possède une extension d'image valide. """
 #     print(namefile.rsplit('.', 1)[1])
