@@ -4,7 +4,7 @@ from flask import request, redirect, render_template, flash, url_for, redirect, 
 from flask_login import login_required, UserMixin, login_user, current_user, logout_user
 from opencage.geocoder import OpenCageGeocode
 from urllib import parse
-import sqlite3, requests, json
+import psycopg2
 from pathlib import PurePath  
 from passlib.hash import sha256_crypt
  
@@ -16,14 +16,20 @@ navitia_url = "http://api.navitia.io/v1/journeys"
 opencagedata_key = "3c853893fc37402eb2ef1473b6629218"
 opencage = OpenCageGeocode(opencagedata_key)
 
-database_file = PurePath('FYN/findyournest.db')
-conn = sqlite3.connect(str(database_file), check_same_thread=False)
+conn = psycopg2.connect(
+        host = "127.0.0.1",
+        port = "5433",
+        database = "findyournest",
+        user = "postgres",
+        password = "findyournestbap")
+
 c = conn.cursor()
 
 #loading the login manager
 @login_manager.user_loader
 def load_user(user_id):
-    userDansLaBase = c.execute("SELECT email, prenom, pro FROM utilisateur WHERE email=?", (user_id,)).fetchone()
+    c.execute("SELECT email, prenom, pro FROM utilisateur WHERE email=%s", (user_id,))
+    userDansLaBase = c.fetchone()
     if userDansLaBase is None:
         return None
     user = UserMixin()
@@ -58,7 +64,8 @@ def connexion():
         email = request.form['email']
         password = request.form['password']
 
-        results = c.execute("SELECT prenom, password FROM utilisateur WHERE email=?", (email,)).fetchone()
+        c.execute("SELECT prenom, password FROM utilisateur WHERE email=%s", (email,))
+        results = c.fetchone()
         
 
         if results :
@@ -106,15 +113,17 @@ def moncompte():
             flash("Il est nécessaire d'entrer un email et un mot de passe", "danger") 
             return render_template("moncompte.html")
         elif password == confirmer:
-            adress = c.execute("SELECT rue, nb, ville FROM adresse where nb=? and rue=? and ville=?", (nb, rue, ville,)).fetchone()
+            c.execute("SELECT rue, nb, ville FROM adresse where nb=%s and rue=%s and ville=%s", (nb, rue, ville,))
+            adress = c.fetchone()
             if adress is None:
-                c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(?,?,?,?)", (nb, rue, ville, code_postal,))
+                c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(%s,%s,%s,%s)", (nb, rue, ville, code_postal,))
                 conn.commit()
                 c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue IS NULL AND ville IS NULL")
                 conn.commit()
                 
-                one_user = c.execute("SELECT * FROM utilisateur where email=?", (email,)).fetchone()
-                id_adres = c.execute("SELECT id_adresse FROM adresse WHERE nb=? AND rue=? AND ville=?", (nb, rue, ville,)).fetchone()
+                one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,)).fetchone()
+                c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,)).fetchone()
+                id_adres = c.fetchone()
                 id_adresse = id_adres[0]
                 
                 if one_user is not None:
@@ -122,22 +131,23 @@ def moncompte():
                     return render_template("moncompte.html")
                 
                 elif one_user is None:
-                    c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
+                    c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
                     conn.commit()
-                    c.execute("UPDATE utilisateur SET id_adresse=? WHERE email=?", (id_adresse, email,))
+                    c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
                     conn.commit()
             else:
-                one_user = c.execute("SELECT * FROM utilisateur where email=?", (email,)).fetchone()
-                id_adres = c.execute("SELECT id_adresse FROM adresse WHERE nb=? AND rue=? AND ville=?", (nb, rue, ville,)).fetchone()
+                one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,)).fetchone()
+                id_adres = c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
+                id_adres = c.fetchone()
                 id_adresse = id_adres[0]
                 if one_user is not None:
                     flash("L'adresse email est déjà utilisée ! Veuiller en entrez une autre ! ", "danger")
                     return render_template("moncompte.html")
                 
                 elif one_user is None:
-                    c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
+                    c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
                     conn.commit()
-                    c.execute("UPDATE utilisateur SET id_adresse=? WHERE email=?", (id_adresse, email,))
+                    c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
                     conn.commit()
                     
             return redirect(url_for('connexion'))
@@ -193,10 +203,10 @@ def aptInfo(add,hours,minutes):
 
 @app.route("/Fiche/<int:id>")
 def Fiche(id):
-    prix_sql = c.execute("SELECT prix FROM logement WHERE id_logement=?", (id,)).fetchone()
-    PostalCode_sql = c.execute("select code_postal from adresse inner JOIN logement on logement.id_adresse=adresse.id_adresse where logement.id_logement= ?", (id,)).fetchone() 
-    nb_pieces_sql = c.execute("SELECT nb_piece FROM logement WHERE id_logement=?", (id,)).fetchone()
-    surface_sql =  c.execute("SELECT superficie FROM logement WHERE id_logement=?", (id,)).fetchone()
+    prix_sql = c.execute("SELECT prix FROM logement WHERE id_logement=%s", (id,)).fetchone()
+    PostalCode_sql = c.execute("select code_postal from adresse inner JOIN logement on logement.id_adresse=adresse.id_adresse where logement.id_logement= %s", (id,)).fetchone() 
+    nb_pieces_sql = c.execute("SELECT nb_piece FROM logement WHERE id_logement=%s", (id,)).fetchone()
+    surface_sql =  c.execute("SELECT superficie FROM logement WHERE id_logement=%s", (id,)).fetchone()
     return render_template("FicheAppart.html", Prix=prix_sql[0], PostalCode=PostalCode_sql[0], nb_pieces=nb_pieces_sql[0], surface=surface_sql[0])
 
 @app.route("/infoscompte/")
@@ -206,10 +216,12 @@ def infoscompte():
         print(current_user.pro)
         if current_user.pro == 'on':
             email = current_user.id
-            infos_pro = c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=?", (email,)).fetchone() 
+            c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=%s", (email,))
+            infos_pro = c.fetchone() 
             maison = infos_pro[4]
             appartement = infos_pro[5]
-            infos_adresse = c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=?", (email,)).fetchone()
+            c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=%s", (email,))
+            infos_adresse = c.fetchone()
             if maison == 'on':
                 type_logement = 'maison'
             elif appartement == 'on':
@@ -221,12 +233,15 @@ def infoscompte():
 
         else:
             email = current_user.id
-            infos_pro = c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=?", (email,)).fetchone() 
+            c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=%s", (email,))
+            infos_pro = c.fetchone()
             maison = infos_pro[4]
             appartement = infos_pro[5]
-            infos_adresse = c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=?", (email,)).fetchone()
+            c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=%s", (email,))
+            infos_adresse = c.fetchone() 
             id_user=infos_pro[6]
-            infos_favoris = c.execute("SELECT titre, prix, photo, description from logement inner join favoris on logement.id_logement=favoris.id_logement where favoris.id_utilisateur=?", (id_user,)).fetchone()
+            c.execute("SELECT titre, prix, photo, description from logement inner join favoris on logement.id_logement=favoris.id_logement where favoris.id_utilisateur=%s", (id_user,))
+            infos_favoris = c.fetchone()
             if infos_favoris is None:
                 if maison == 'on' and appartement !='on':
                     type_logement = 'maison'
@@ -252,40 +267,40 @@ def infoscompte():
 
     else:
         return redirect(url_for('main'))
-def checkextension(namefile):
-    """ Renvoie True si le fichier possède une extension d'image valide. """
-    print(namefile.rsplit('.', 1)[1])
-    return '.' in namefile and namefile.rsplit('.', 1)[1] in ('png', 'jpg', 'jpeg')
+# def checkextension(namefile):
+#     """ Renvoie True si le fichier possède une extension d'image valide. """
+#     print(namefile.rsplit('.', 1)[1])
+#     return '.' in namefile and namefile.rsplit('.', 1)[1] in ('png', 'jpg', 'jpeg')
 
-@app.route('/infoscompte/', methods=['GET','POST'])
-def upload():
-    if request.method == 'POST':
-            f = request.files['picture']
-            if f: # on vérifie qu'un fichier a bien été envoyé
-                if checkextension(f.filename): # on vérifie que son extension est valide
-                    name = secure_filename(f.filename)
-                    f.save(str(upload_pro) + name)
-                    flash('Image envoyée !', 'success')
-                else:
-                    flash('Ce fichier n\'\est pas dans une extension autorisée!', 'error')
-            else:
-                flash('Vous avez oublié de joindre une image !', 'error')
-    else:        
-        return render_template('_infoscomptepro_up.html')
-
-
-@app.route('/views/')
-def liste_upped():
-    images = [img for img in os.listdir(upload_pro) if checkextension(img)] # la liste des images dans le dossier
-    return render_template('_infoscomptepro_liste.html', images=images)
+# @app.route('/infoscompte/', methods=['GET','POST'])
+# def upload():
+#     if request.method == 'POST':
+#             f = request.files['picture']
+#             if f: # on vérifie qu'un fichier a bien été envoyé
+#                 if checkextension(f.filename): # on vérifie que son extension est valide
+#                     name = secure_filename(f.filename)
+#                     f.save(str(upload_pro) + name)
+#                     flash('Image envoyée !', 'success')
+#                 else:
+#                     flash('Ce fichier n\'\est pas dans une extension autorisée!', 'error')
+#             else:
+#                 flash('Vous avez oublié de joindre une image !', 'error')
+#     else:        
+#         return render_template('_infoscomptepro_up.html')
 
 
-@app.route('/views/<name>')
-def upped(name):
-    name = secure_filename(name)
-    if os.path.isfile(str(upload_pro) + name): # si le fichier existe
-        return send_file(str(upload_pro) + name, as_attachment=True) # on l'envoie
-    else:
-        flash('Fichier {name} inexistant.'.format(name=name), 'error')
-        return render_template('liste_upped') # sinon on redirige vers la liste des images, avec un message d'erreur
+# @app.route('/views/')
+# def liste_upped():
+#     images = [img for img in os.listdir(upload_pro) if checkextension(img)] # la liste des images dans le dossier
+#     return render_template('_infoscomptepro_liste.html', images=images)
+
+
+# @app.route('/views/<name>')
+# def upped(name):
+#     name = secure_filename(name)
+#     if os.path.isfile(str(upload_pro) + name): # si le fichier existe
+#         return send_file(str(upload_pro) + name, as_attachment=True) # on l'envoie
+#     else:
+#         flash('Fichier {name} inexistant.'.format(name=name), 'error')
+#         return render_template('liste_upped') # sinon on redirige vers la liste des images, avec un message d'erreur
         
