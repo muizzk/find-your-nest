@@ -8,3 +8,4 @@ class Config(object):
 class DevelopmentConfig(Config):
     Debug = True
     SECRET_KEY = b'This is a huge secret'
+
