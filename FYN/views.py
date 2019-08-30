@@ -113,16 +113,17 @@ def moncompte():
             flash("Il est nécessaire d'entrer un email et un mot de passe", "danger") 
             return render_template("moncompte.html")
         elif password == confirmer:
-            c.execute("SELECT rue, nb, ville FROM adresse where nb=%s and rue=%s and ville=%s", (nb, rue, ville,))
-            adress = c.fetchone()
+            adress = c.execute("SELECT rue, nb, ville FROM adresse where nb=%s and rue=%s and ville=%s", (nb, rue, ville,))
+
             if adress is None:
                 c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(%s,%s,%s,%s)", (nb, rue, ville, code_postal,))
                 conn.commit()
                 c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue IS NULL AND ville IS NULL")
                 conn.commit()
                 
-                one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,)).fetchone()
-                c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,)).fetchone()
+                c.execute("SELECT * FROM utilisateur where email=%s", (email,))
+                one_user = c.fetchone()
+                c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
                 id_adres = c.fetchone()
                 id_adresse = id_adres[0]
                 
@@ -136,7 +137,8 @@ def moncompte():
                     c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
                     conn.commit()
             else:
-                one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,)).fetchone()
+                one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,))
+                one_user = c.fetchone()
                 id_adres = c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
                 id_adres = c.fetchone()
                 id_adresse = id_adres[0]
