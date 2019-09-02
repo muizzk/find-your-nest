@@ -107,10 +107,18 @@ def moncompte():
         maison = request.form.get('maison')
         appart = request.form.get('appart')
 
+        c.execute("SELECT * FROM utilisateur where email=%s", (email,))
+        one_user = c.fetchone()
+
         if not (email and password):
             flash("Il est nécessaire d'entrer un email et un mot de passe", "danger") 
             return render_template("moncompte.html")
-        elif password == confirmer:
+        
+        elif password == confirmer and one_user is not None:
+            flash("L'adresse email est déjà utilisée ! Veuillez en entrez une aitre !", "danger")
+            return render_template("moncompte.html")
+
+        elif password == confirmer and one_user is None: 
             adress = c.execute("SELECT rue, nb, ville FROM adresse where nb=%s and rue=%s and ville=%s", (nb, rue, ville,))
 
             if adress is None:
@@ -119,21 +127,15 @@ def moncompte():
                 c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue IS NULL AND ville IS NULL")
                 conn.commit()
                 
-                c.execute("SELECT * FROM utilisateur where email=%s", (email,))
-                one_user = c.fetchone()
                 c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
                 id_adres = c.fetchone()
                 id_adresse = id_adres[0]
                 
-                if one_user is not None:
-                    flash("L'adresse email est déjà utilisée ! Veuiller en entrez une autre ! ", "danger")
-                    return render_template("moncompte.html")
-                
-                elif one_user is None:
-                    c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
-                    conn.commit()
-                    c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
-                    conn.commit()
+                c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
+                conn.commit()
+                c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
+                conn.commit()
+
             else:
                 one_user = c.execute("SELECT * FROM utilisateur where email=%s", (email,))
                 one_user = c.fetchone()
@@ -209,11 +211,10 @@ def Fiche(id):
     surface_sql =  c.execute("SELECT superficie FROM logement WHERE id_logement=%s", (id,)).fetchone()
     return render_template("FicheAppart.html", Prix=prix_sql[0], PostalCode=PostalCode_sql[0], nb_pieces=nb_pieces_sql[0], surface=surface_sql[0])
 
-@app.route("/infoscompte/")
+@app.route("/infoscompte/", methods=["GET", "POST"])
 @login_required
 def infoscompte():
-    if current_user.is_authenticated:
-        print(current_user.pro)
+    if request.method == 'GET' : 
         if current_user.pro == True:
             email = current_user.id
             c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=%s", (email,))
@@ -264,44 +265,51 @@ def infoscompte():
                 else:
                     type_logement = 'Non précisé'
             return render_template("infoscompte.html", prenom=infos_pro[0], email=infos_pro[1], temps=infos_pro[2], budget=infos_pro[3], type_logement=type_logement, nb=infos_adresse[0], rue=infos_adresse[1], ville=infos_adresse[2], code_postal=infos_adresse[3], titre=infos_favoris[0], prix=infos_favoris[1], photo=infos_favoris[2], description=infos_favoris[3])
-
+   
+   #partie pour update les informations 
     else:
-        return redirect(url_for('main'))
-
-# def checkextension(namefile):
-#     """ Renvoie True si le fichier possède une extension d'image valide. """
-#     print(namefile.rsplit('.', 1)[1])
-#     return '.' in namefile and namefile.rsplit('.', 1)[1] in ('png', 'jpg', 'jpeg')
-
-# @app.route('/infoscompte/', methods=['GET','POST'])
-# def upload():
-#     if request.method == 'POST':
-#             f = request.files['picture']
-#             if f: # on vérifie qu'un fichier a bien été envoyé
-#                 if checkextension(f.filename): # on vérifie que son extension est valide
-#                     name = secure_filename(f.filename)
-#                     f.save(str(upload_pro) + name)
-#                     flash('Image envoyée !', 'success')
-#                 else:
-#                     flash('Ce fichier n\'\est pas dans une extension autorisée!', 'error')
-#             else:
-#                 flash('Vous avez oublié de joindre une image !', 'error')
-#     else:        
-#         return render_template('_infoscomptepro_up.html')
-
-
-# @app.route('/views/')
-# def liste_upped():
-#     images = [img for img in os.listdir(upload_pro) if checkextension(img)] # la liste des images dans le dossier
-#     return render_template('_infoscomptepro_liste.html', images=images)
-
-
-# @app.route('/views/<name>')
-# def upped(name):
-#     name = secure_filename(name)
-#     if os.path.isfile(str(upload_pro) + name): # si le fichier existe
-#         return send_file(str(upload_pro) + name, as_attachment=True) # on l'envoie
-#     else:
-#         flash('Fichier {name} inexistant.'.format(name=name), 'error')
-#         return render_template('liste_upped') # sinon on redirige vers la liste des images, avec un message d'erreur
+        prenom = request.form['prenom']
+        email = request.form['email']
+        nb = request.form['nb']
+        rue = request.form['rue']
+        ville = request.form['ville']
+        code_postal = request.form['code_postal']
+        budget = request.form.get('budget')
         
+        c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(%s,%s,%s,%s)", (nb, rue, ville, code_postal,))
+        conn.commit()
+        c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue IS NULL AND ville IS NULL")
+        conn.commit()
+        
+        c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
+        id_adres = c.fetchone()
+        id_adresse = id_adres[0]
+
+        if current_user.id == email:
+            flash("L'adresse email est déjà utilisée ! Veuiller en entrez une autre ! ", "danger")
+        
+        else:
+            infos_utilisateur = c.execute("SELECT budget FROM  utilisateur WHERE email=%s", (current_user.id,))
+            infos_adresse = c.execute("SELECT nb, rue, ville, code_postal FROM adresse INNER JOIN utilisateur ON adresse.id_adresse = utilisateur.id_adresse WHERE email=%s", (current_user.id))
+            bugdet_user = infos_utilisateur[0] 
+            nb_user = infos_adresse[0]
+            rue_user = infos_adresse[1]
+            ville_user = infos_adresse[2]
+            code_postal_user = infos_adresse[3]
+
+            if not prenom :
+                c.execute("UPDATE utilisateur SET prenom=%s WHERE email=%s", (current_user.prenom, current_user.id,))
+                conn.commit()
+            elif not email :
+                c.execute("UPDATE utilisateur SET email=%s WHERE email=%s", (email, current_user.id,))
+                conn.commit()
+            elif not budget : 
+                c.execute("UPDATE utilisateur SET budget=%s WHERE email=%s", (budget_user, current_user.id,))
+                conn.commit()
+            elif nb is None and rue is None and code_postal is None and ville is None :
+                print("Aucune adresse a été entrée")
+            else: 
+                c.execute("UPDATE utilisateur set prenom=%s AND email=%s AND budget=%s where email=%s", (prenom, email, budget, current_user.id,))
+                conn.commit()
+                c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, current_user.id,))
+                conn.commit()
