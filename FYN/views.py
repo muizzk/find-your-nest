@@ -229,15 +229,20 @@ def infoscompte():
 
         else:
             email = current_user.id
+            #données de l'utilisateur
+            infos_pro = []
             c.execute("select prenom, email, temps, budget, maison, appartement, id_utilisateur FROM utilisateur where email=%s", (email,))
-            infos_pro = c.fetchone()
+            infos_pro.append (c.fetchone())
             maison = infos_pro[4]
             appartement = infos_pro[5]
+            #données adresse 
             c.execute("select nb, rue, ville, code_postal from adresse inner join utilisateur on adresse.id_adresse=utilisateur.id_adresse where email=%s", (email,))
             infos_adresse = c.fetchone() 
             id_user=infos_pro[6]
+            #données logement favoris
             c.execute("SELECT titre, prix, photo, description from logement inner join favoris on logement.id_logement=favoris.id_logement where favoris.id_utilisateur=%s", (id_user,))
             infos_favoris = c.fetchone()
+            
             if infos_favoris is None:
                 if maison == True and appartement is None:
                     type_logement = 'maison'
