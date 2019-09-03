@@ -117,24 +117,26 @@ def moncompte():
             flash("L'adresse email est déjà utilisée ! Veuillez en entrez une aitre !", "danger")
             return render_template("moncompte.html")
 
-        elif password == confirmer and one_user is None: 
-            adress = c.execute("SELECT rue, nb, ville FROM adresse where nb=%s and rue=%s and ville=%s", (nb, rue, ville,))
-
+        elif password == confirmer and one_user is None:
+            c.execute("SELECT * FROM adresse where nb=NULLIF(%s, '')::integer and rue=%s and ville=%s and code_postal=NULLIF(%s, '')::integer", (nb, rue, ville,code_postal,))
+            adress = c.fetchone()
             if adress is None:
-                c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(%s,%s,%s,%s)", (nb, rue, ville, code_postal,))
+                c.execute("INSERT INTO adresse (nb, rue, ville, code_postal) VALUES(NULLIF(%s, '')::integer,%s,%s,NULLIF(%s, '')::integer)",(nb, rue, ville, code_postal,))
                 conn.commit()
                 #retirer les cases vides
-                c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue IS NULL AND ville IS NULL")
+                c.execute("DELETE FROM adresse WHERE nb IS NULL AND rue='' AND ville='' AND code_postal IS NULL")
+                conn.commit()
+                #insertion des données de l'utilisateur 
+                c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, NULLIF(%s, '')::interval, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
                 conn.commit()
                 #sélectionner l'id de l'adresse sélectionner par l'utilisateur
-                c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
+                c.execute("SELECT id_adresse FROM adresse WHERE nb=NULLIF(%s, '')::integer AND rue=%s AND ville=%s", (nb, rue, ville,)) 
                 id_adres = c.fetchone()
-                id_adresse = id_adres[0]
-                #informations de l'utilisateur
-                c.execute("INSERT INTO utilisateur (prenom, email, password, pro, temps, budget, maison, appartement) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (prenom, email, secure_password, pro, temps, budget, maison, appart,))
-                conn.commit()
-                c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
-                conn.commit()
+                if id_adres: 
+                    id_adresse = id_adres[0]
+                #ajout de l'id favoris
+                    c.execute("UPDATE utilisateur SET id_adresse=%s WHERE email=%s", (id_adresse, email,))
+                    conn.commit()
 
             else:
                 id_adres = c.execute("SELECT id_adresse FROM adresse WHERE nb=%s AND rue=%s AND ville=%s", (nb, rue, ville,))
